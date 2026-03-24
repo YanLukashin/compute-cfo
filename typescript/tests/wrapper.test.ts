@@ -115,6 +115,117 @@ describe('wrap Anthropic', () => {
   });
 });
 
+function makeGeminiClient() {
+  return {
+    models: {
+      generateContent: jest.fn().mockResolvedValue({
+        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 50 },
+        text: 'Hello!',
+      }),
+    },
+  };
+}
+
+function makeMistralClient() {
+  return {
+    chat: {
+      complete: jest.fn().mockResolvedValue({
+        model: 'mistral-large-latest',
+        usage: { prompt_tokens: 100, completion_tokens: 50 },
+        choices: [{ message: { content: 'Hello!' } }],
+      }),
+    },
+  };
+}
+
+describe('wrap Gemini', () => {
+  test('tracks cost', async () => {
+    const tracker = new CostTracker({ quiet: true });
+    const client = makeGeminiClient();
+    const wrapped = wrap(client, { tracker });
+
+    const response = await wrapped.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: 'hi',
+    });
+
+    expect(tracker.events.length).toBe(1);
+    const event = tracker.events[0];
+    expect(event.provider).toBe('google');
+    expect(event.model).toBe('gemini-2.5-flash');
+    expect(event.inputTokens).toBe(100);
+    expect(event.outputTokens).toBe(50);
+    expect(event.costUsd).not.toBeNull();
+    expect(event.costUsd!).toBeGreaterThan(0);
+  });
+
+  test('with tags', async () => {
+    const tracker = new CostTracker({ quiet: true });
+    const client = makeGeminiClient();
+    const wrapped = wrap(client, { tracker });
+
+    await wrapped.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: 'hi',
+      compute_cfo_tags: { project: 'search' },
+    });
+
+    const event = tracker.events[0];
+    expect(event.tags).toEqual({ project: 'search' });
+  });
+
+  test('strips models/ prefix', async () => {
+    const tracker = new CostTracker({ quiet: true });
+    const client = makeGeminiClient();
+    const wrapped = wrap(client, { tracker });
+
+    await wrapped.models.generateContent({
+      model: 'models/gemini-2.5-pro',
+      contents: 'hi',
+    });
+
+    const event = tracker.events[0];
+    expect(event.model).toBe('gemini-2.5-pro');
+  });
+});
+
+describe('wrap Mistral', () => {
+  test('tracks cost', async () => {
+    const tracker = new CostTracker({ quiet: true });
+    const client = makeMistralClient();
+    const wrapped = wrap(client, { tracker });
+
+    const response = await wrapped.chat.complete({
+      model: 'mistral-large-latest',
+      messages: [{ role: 'user', content: 'hi' }],
+    });
+
+    expect(tracker.events.length).toBe(1);
+    const event = tracker.events[0];
+    expect(event.provider).toBe('mistral');
+    expect(event.model).toBe('mistral-large-latest');
+    expect(event.inputTokens).toBe(100);
+    expect(event.outputTokens).toBe(50);
+    expect(event.costUsd).not.toBeNull();
+    expect(event.costUsd!).toBeGreaterThan(0);
+  });
+
+  test('with tags', async () => {
+    const tracker = new CostTracker({ quiet: true });
+    const client = makeMistralClient();
+    const wrapped = wrap(client, { tracker });
+
+    await wrapped.chat.complete({
+      model: 'mistral-large-latest',
+      messages: [{ role: 'user', content: 'hi' }],
+      compute_cfo_tags: { project: 'code-gen' },
+    });
+
+    const event = tracker.events[0];
+    expect(event.tags).toEqual({ project: 'code-gen' });
+  });
+});
+
 describe('wrap unsupported', () => {
   test('throws for unsupported client', () => {
     const tracker = new CostTracker({ quiet: true });

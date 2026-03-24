@@ -7,7 +7,7 @@ from .tracker import CostTracker
 from .types import BudgetExceededError, CostEvent
 from .wrapper import wrap
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "wrap",

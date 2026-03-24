@@ -1,4 +1,4 @@
-"""Model pricing database for OpenAI and Anthropic.
+"""Model pricing database for OpenAI, Anthropic, Google Gemini, and Mistral.
 
 Prices are in USD per 1 million tokens. Updated March 2026.
 """
@@ -54,6 +54,26 @@ MODEL_PRICES: dict[str, Tuple[float, float]] = {
     "claude-3-opus": (15.00, 75.00),
     "claude-3-sonnet": (3.00, 15.00),
     "claude-3-haiku": (0.25, 1.25),
+
+    # ── Google Gemini ─────────────────────────────────────────
+    "gemini-2.5-pro": (1.25, 10.00),
+    "gemini-2.5-flash": (0.30, 2.50),
+    "gemini-2.5-flash-lite": (0.10, 0.40),
+    "gemini-2.0-flash": (0.10, 0.40),
+    "gemini-1.5-pro": (1.25, 5.00),
+    "gemini-1.5-flash": (0.075, 0.30),
+    "gemini-1.5-flash-8b": (0.0375, 0.15),
+    # Gemini embeddings
+    "gemini-embedding": (0.15, 0.0),
+
+    # ── Mistral ───────────────────────────────────────────────
+    "mistral-large-latest": (0.50, 1.50),
+    "mistral-medium-latest": (0.40, 2.00),
+    "mistral-small-latest": (0.03, 0.11),
+    "codestral-latest": (0.30, 0.90),
+    "pixtral-large-latest": (2.00, 6.00),
+    "mistral-nemo": (0.02, 0.05),
+    "pixtral-12b": (0.15, 0.15),
 }
 
 # Common aliases mapping
@@ -70,6 +90,19 @@ _ALIASES: dict[str, str] = {
     "gpt-3.5-turbo-1106": "gpt-3.5-turbo",
     "o3-2025-04-16": "o3",
     "o4-mini-2025-04-16": "o4-mini",
+    # Gemini aliases
+    "models/gemini-2.5-pro": "gemini-2.5-pro",
+    "models/gemini-2.5-flash": "gemini-2.5-flash",
+    "models/gemini-2.5-flash-lite": "gemini-2.5-flash-lite",
+    "models/gemini-2.0-flash": "gemini-2.0-flash",
+    "models/gemini-1.5-pro": "gemini-1.5-pro",
+    "models/gemini-1.5-flash": "gemini-1.5-flash",
+    "models/gemini-1.5-flash-8b": "gemini-1.5-flash-8b",
+    # Mistral aliases
+    "mistral-large-2501": "mistral-large-latest",
+    "mistral-medium-2505": "mistral-medium-latest",
+    "mistral-small-2503": "mistral-small-latest",
+    "codestral-2501": "codestral-latest",
 }
 
 

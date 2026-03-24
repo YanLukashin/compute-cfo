@@ -145,3 +145,121 @@ def test_wrap_records_latency():
     event = tracker.events[0]
     assert event.latency_ms is not None
     assert event.latency_ms >= 0
+
+
+# ── Google Gemini ────────────────────────────────────────────
+
+
+def _make_gemini_client():
+    """Create a mock Google Gemini client."""
+    client = MagicMock()
+    client.__class__.__module__ = "google_genai.client"
+    response = SimpleNamespace(
+        usage_metadata=SimpleNamespace(
+            prompt_token_count=100,
+            candidates_token_count=50,
+        ),
+        text="Hello!",
+    )
+    client.models.generate_content.return_value = response
+    return client
+
+
+def test_wrap_gemini_tracks_cost():
+    tracker = CostTracker(quiet=True)
+    client = _make_gemini_client()
+    wrapped = wrap(client, tracker=tracker)
+
+    response = wrapped.models.generate_content(
+        model="gemini-2.5-flash",
+        contents="hi",
+    )
+
+    assert len(tracker.events) == 1
+    event = tracker.events[0]
+    assert event.provider == "google"
+    assert event.model == "gemini-2.5-flash"
+    assert event.input_tokens == 100
+    assert event.output_tokens == 50
+    assert event.cost_usd is not None
+    assert event.cost_usd > 0
+
+
+def test_wrap_gemini_with_tags():
+    tracker = CostTracker(quiet=True)
+    client = _make_gemini_client()
+    wrapped = wrap(client, tracker=tracker)
+
+    wrapped.models.generate_content(
+        model="gemini-2.5-flash",
+        contents="hi",
+        compute_cfo_tags={"project": "search"},
+    )
+
+    event = tracker.events[0]
+    assert event.tags == {"project": "search"}
+
+
+def test_wrap_gemini_strips_models_prefix():
+    tracker = CostTracker(quiet=True)
+    client = _make_gemini_client()
+    wrapped = wrap(client, tracker=tracker)
+
+    wrapped.models.generate_content(
+        model="models/gemini-2.5-pro",
+        contents="hi",
+    )
+
+    event = tracker.events[0]
+    assert event.model == "gemini-2.5-pro"
+
+
+# ── Mistral ──────────────────────────────────────────────────
+
+
+def _make_mistral_client():
+    """Create a mock Mistral client."""
+    client = MagicMock()
+    client.__class__.__module__ = "mistralai.client"
+    response = SimpleNamespace(
+        model="mistral-large-latest",
+        usage=SimpleNamespace(prompt_tokens=100, completion_tokens=50),
+        choices=[SimpleNamespace(message=SimpleNamespace(content="Hello!"))],
+    )
+    client.chat.complete.return_value = response
+    return client
+
+
+def test_wrap_mistral_tracks_cost():
+    tracker = CostTracker(quiet=True)
+    client = _make_mistral_client()
+    wrapped = wrap(client, tracker=tracker)
+
+    response = wrapped.chat.complete(
+        model="mistral-large-latest",
+        messages=[{"role": "user", "content": "hi"}],
+    )
+
+    assert len(tracker.events) == 1
+    event = tracker.events[0]
+    assert event.provider == "mistral"
+    assert event.model == "mistral-large-latest"
+    assert event.input_tokens == 100
+    assert event.output_tokens == 50
+    assert event.cost_usd is not None
+    assert event.cost_usd > 0
+
+
+def test_wrap_mistral_with_tags():
+    tracker = CostTracker(quiet=True)
+    client = _make_mistral_client()
+    wrapped = wrap(client, tracker=tracker)
+
+    wrapped.chat.complete(
+        model="mistral-large-latest",
+        messages=[{"role": "user", "content": "hi"}],
+        compute_cfo_tags={"project": "code-gen"},
+    )
+
+    event = tracker.events[0]
+    assert event.tags == {"project": "code-gen"}

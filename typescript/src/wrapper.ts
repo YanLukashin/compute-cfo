@@ -1,5 +1,5 @@
 /**
- * Drop-in wrapper for OpenAI and Anthropic SDK clients.
+ * Drop-in wrapper for OpenAI, Anthropic, Google Gemini, and Mistral SDK clients.
  */
 
 import { getCost } from './pricing';
@@ -32,9 +32,15 @@ export function wrap<T extends object>(client: T, options?: WrapOptions): T {
   if ('messages' in client && typeof (client as any).messages?.create === 'function') {
     return wrapAnthropic(client, tracker);
   }
+  if ('models' in client && typeof (client as any).models?.generateContent === 'function') {
+    return wrapGemini(client, tracker);
+  }
+  if ('chat' in client && typeof (client as any).chat?.complete === 'function') {
+    return wrapMistral(client, tracker);
+  }
 
   throw new TypeError(
-    `Unsupported client type. Supported: OpenAI, Anthropic`
+    `Unsupported client type. Supported: OpenAI, Anthropic, Google Gemini, Mistral`
   );
 }
 
@@ -88,6 +94,112 @@ function wrapOpenAI<T extends object>(client: T, tracker: CostTracker): T {
                 },
               });
             }
+            return chatTarget[chatProp];
+          },
+        });
+      }
+      return target[prop];
+    },
+  }) as T;
+}
+
+function wrapGemini<T extends object>(client: T, tracker: CostTracker): T {
+  const originalGenerateContent = (client as any).models.generateContent.bind(
+    (client as any).models
+  );
+
+  const trackedGenerateContent = async (params: any) => {
+    const { compute_cfo_tags, ...rest } = params ?? {};
+    const tags: Record<string, string> =
+      compute_cfo_tags && typeof compute_cfo_tags === 'object' ? { ...compute_cfo_tags } : {};
+
+    let model = rest.model ?? 'unknown';
+    if (typeof model === 'string' && model.startsWith('models/')) {
+      model = model.slice('models/'.length);
+    }
+
+    const start = performance.now();
+    const response = await originalGenerateContent(rest);
+    const latencyMs = Math.round((performance.now() - start) * 10) / 10;
+
+    const usage = response?.usageMetadata;
+    const inputTokens = usage?.promptTokenCount ?? 0;
+    const outputTokens = usage?.candidatesTokenCount ?? 0;
+    const costUsd = getCost(model, inputTokens, outputTokens);
+
+    const event: CostEvent = {
+      timestamp: new Date().toISOString(),
+      provider: 'google',
+      model,
+      operation: 'generate_content',
+      inputTokens,
+      outputTokens,
+      costUsd,
+      latencyMs,
+      tags,
+    };
+    tracker.record(event);
+    return response;
+  };
+
+  return new Proxy(client, {
+    get(target: any, prop: string | symbol) {
+      if (prop === 'models') {
+        return new Proxy(target.models, {
+          get(modelsTarget: any, modelsProp: string | symbol) {
+            if (modelsProp === 'generateContent') return trackedGenerateContent;
+            return modelsTarget[modelsProp];
+          },
+        });
+      }
+      return target[prop];
+    },
+  }) as T;
+}
+
+function wrapMistral<T extends object>(client: T, tracker: CostTracker): T {
+  const originalComplete = (client as any).chat.complete.bind(
+    (client as any).chat
+  );
+
+  const trackedComplete = async (params: any) => {
+    const { compute_cfo_tags, ...rest } = params ?? {};
+    const tags: Record<string, string> =
+      compute_cfo_tags && typeof compute_cfo_tags === 'object' ? { ...compute_cfo_tags } : {};
+
+    const model = rest.model ?? 'unknown';
+
+    const start = performance.now();
+    const response = await originalComplete(rest);
+    const latencyMs = Math.round((performance.now() - start) * 10) / 10;
+
+    const usage = response?.usage;
+    const inputTokens = usage?.prompt_tokens ?? 0;
+    const outputTokens = usage?.completion_tokens ?? 0;
+    const actualModel = response?.model ?? model;
+    const costUsd = getCost(actualModel, inputTokens, outputTokens);
+
+    const event: CostEvent = {
+      timestamp: new Date().toISOString(),
+      provider: 'mistral',
+      model: actualModel,
+      operation: 'chat.complete',
+      inputTokens,
+      outputTokens,
+      costUsd,
+      latencyMs,
+      tags,
+    };
+    tracker.record(event);
+    return response;
+  };
+
+  return new Proxy(client, {
+    get(target: any, prop: string | symbol) {
+      if (prop === 'chat') {
+        return new Proxy(target.chat, {
+          get(chatTarget: any, chatProp: string | symbol) {
+            if (chatProp === 'complete') return trackedComplete;
             return chatTarget[chatProp];
           },
         });

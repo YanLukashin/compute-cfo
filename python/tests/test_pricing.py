@@ -43,3 +43,35 @@ def test_embedding_model_no_output_cost():
     assert cost is not None
     expected = (1000 * 0.02) / 1_000_000
     assert abs(cost - expected) < 1e-10
+
+
+def test_gemini_model_price():
+    price = get_price("gemini-2.5-flash")
+    assert price == (0.30, 2.50)
+
+
+def test_gemini_cost_calculation():
+    cost = get_cost("gemini-2.5-pro", input_tokens=1000, output_tokens=500)
+    assert cost is not None
+    expected = (1000 * 1.25 + 500 * 10.00) / 1_000_000
+    assert abs(cost - expected) < 1e-10
+
+
+def test_gemini_alias_resolution():
+    assert resolve_model("models/gemini-2.5-pro") == "gemini-2.5-pro"
+
+
+def test_mistral_model_price():
+    price = get_price("mistral-large-latest")
+    assert price == (0.50, 1.50)
+
+
+def test_mistral_cost_calculation():
+    cost = get_cost("mistral-small-latest", input_tokens=1000, output_tokens=500)
+    assert cost is not None
+    expected = (1000 * 0.03 + 500 * 0.11) / 1_000_000
+    assert abs(cost - expected) < 1e-10
+
+
+def test_mistral_alias_resolution():
+    assert resolve_model("mistral-large-2501") == "mistral-large-latest"

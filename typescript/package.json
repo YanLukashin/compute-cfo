@@ -1,6 +1,6 @@
 {
   "name": "compute-cfo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cost tracking, attribution, and budget enforcement for AI inference APIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
