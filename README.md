@@ -19,7 +19,7 @@ Most teams don't fail on AI spend because they lack dashboards. They fail becaus
 - **Instant visibility** — see cost per call, per model, per agent
 - **Budget enforcement** — hard spending limits that actually stop requests
 - **Attribution** — tag every call by project, agent, team, or feature
-- **Multi-provider** — OpenAI, Anthropic, Google Gemini, Mistral — same API
+- **Multi-provider** — OpenAI, Anthropic, Gemini, Mistral, Groq, Together AI — same API
 - **Zero dependencies** — beyond your existing SDK
 
 ## Install
@@ -179,12 +179,14 @@ Each cost event is a structured record:
 
 ## Supported Models
 
-Pricing data for 60+ models including:
+Pricing data for 80+ models including:
 
 - **OpenAI**: GPT-4.1, GPT-4o, GPT-3.5, o3, o4-mini, embeddings
 - **Anthropic**: Claude Opus 4, Sonnet 4, 3.7 Sonnet, 3.5 Sonnet/Haiku, 3 Opus/Sonnet/Haiku
 - **Google Gemini**: Gemini 2.5 Pro, 2.5 Flash, 2.0 Flash, 1.5 Pro/Flash
 - **Mistral**: Mistral Large, Medium, Small, Codestral, Pixtral, Nemo
+- **Groq**: Llama 3.3/3.1, Gemma 2, Mixtral
+- **Together AI**: Llama 3.3/3.1, Qwen 2.5, Mixtral
 
 Unknown models return `null` cost — your calls still work, just without cost data.
 
@@ -199,8 +201,8 @@ See the [`examples/`](examples/) directory for runnable examples:
 ## Roadmap
 
 - [ ] Streaming support (token counting from chunks)
-- [ ] Groq, Together AI, Cohere
-- [ ] Async wrapper support
+- [ ] Cohere
+- [x] ~~Async wrapper support~~
 - [ ] Cost anomaly detection
 - [ ] CLI for analyzing JSONL cost files
 

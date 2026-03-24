@@ -73,6 +73,21 @@ const MODEL_PRICES: Record<string, ModelPrice> = {
   'pixtral-large-latest': { inputPerMillion: 2.0, outputPerMillion: 6.0 },
   'mistral-nemo': { inputPerMillion: 0.02, outputPerMillion: 0.05 },
   'pixtral-12b': { inputPerMillion: 0.15, outputPerMillion: 0.15 },
+
+  // ── Groq ──────────────────────────────────────────────────
+  'llama-3.3-70b-versatile': { inputPerMillion: 0.59, outputPerMillion: 0.79 },
+  'llama-3.1-8b-instant': { inputPerMillion: 0.05, outputPerMillion: 0.08 },
+  'llama-3.1-70b-versatile': { inputPerMillion: 0.59, outputPerMillion: 0.79 },
+  'gemma2-9b-it': { inputPerMillion: 0.2, outputPerMillion: 0.2 },
+  'mixtral-8x7b-32768': { inputPerMillion: 0.24, outputPerMillion: 0.24 },
+
+  // ── Together AI ───────────────────────────────────────────
+  'meta-llama/Llama-3.3-70B-Instruct-Turbo': { inputPerMillion: 0.88, outputPerMillion: 0.88 },
+  'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': { inputPerMillion: 0.18, outputPerMillion: 0.18 },
+  'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo': { inputPerMillion: 0.88, outputPerMillion: 0.88 },
+  'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo': { inputPerMillion: 3.5, outputPerMillion: 3.5 },
+  'mistralai/Mixtral-8x7B-Instruct-v0.1': { inputPerMillion: 0.6, outputPerMillion: 0.6 },
+  'Qwen/Qwen2.5-72B-Instruct-Turbo': { inputPerMillion: 1.2, outputPerMillion: 1.2 },
 };
 
 const ALIASES: Record<string, string> = {

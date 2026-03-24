@@ -132,6 +132,45 @@ def test_wrap_unsupported_client():
         wrap(FakeClient(), tracker=tracker)
 
 
+def test_wrap_openai_streaming():
+    """Streaming responses should be tracked after iteration completes."""
+    tracker = CostTracker(quiet=True)
+    client = _make_openai_client()
+
+    # Simulate streaming: create returns an iterable of chunks
+    chunk1 = SimpleNamespace(
+        choices=[SimpleNamespace(delta=SimpleNamespace(content="Hello"))],
+        usage=None,
+    )
+    chunk2 = SimpleNamespace(
+        choices=[SimpleNamespace(delta=SimpleNamespace(content=" World"))],
+        usage=SimpleNamespace(prompt_tokens=50, completion_tokens=20),
+    )
+    client.chat.completions.create.return_value = iter([chunk1, chunk2])
+
+    wrapped = wrap(client, tracker=tracker)
+    stream = wrapped.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": "hi"}],
+        stream=True,
+    )
+
+    # No event recorded yet
+    assert len(tracker.events) == 0
+
+    # Consume the stream
+    chunks = list(stream)
+    assert len(chunks) == 2
+
+    # Now event should be recorded
+    assert len(tracker.events) == 1
+    event = tracker.events[0]
+    assert event.provider == "openai"
+    assert event.model == "gpt-4o"
+    assert event.input_tokens == 50
+    assert event.output_tokens == 20
+
+
 def test_wrap_records_latency():
     tracker = CostTracker(quiet=True)
     client = _make_openai_client()
@@ -248,6 +287,66 @@ def test_wrap_mistral_tracks_cost():
     assert event.output_tokens == 50
     assert event.cost_usd is not None
     assert event.cost_usd > 0
+
+
+def test_wrap_groq_tracks_cost():
+    """Groq uses OpenAI-compatible API, detected by module name."""
+    tracker = CostTracker(quiet=True)
+    client = MagicMock()
+    client.__class__.__module__ = "groq.client"
+    response = SimpleNamespace(
+        model="llama-3.3-70b-versatile",
+        usage=SimpleNamespace(prompt_tokens=100, completion_tokens=50),
+        choices=[SimpleNamespace(message=SimpleNamespace(content="Hello!"))],
+    )
+    client.chat.completions.create.return_value = response
+
+    wrapped = wrap(client, tracker=tracker)
+    wrapped.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": "hi"}],
+    )
+
+    assert len(tracker.events) == 1
+    event = tracker.events[0]
+    assert event.provider == "groq"
+    assert event.model == "llama-3.3-70b-versatile"
+    assert event.cost_usd is not None
+
+
+def test_wrap_async_openai():
+    """AsyncOpenAI should be wrapped with async wrapper."""
+    import asyncio
+
+    tracker = CostTracker(quiet=True)
+    client = MagicMock()
+    client.__class__.__module__ = "openai.client"
+    client.__class__.__name__ = "AsyncOpenAI"
+
+    response = SimpleNamespace(
+        model="gpt-4o",
+        usage=SimpleNamespace(prompt_tokens=100, completion_tokens=50),
+        choices=[SimpleNamespace(message=SimpleNamespace(content="Hello!"))],
+    )
+
+    async def mock_create(**kwargs):
+        return response
+
+    client.chat.completions.create = mock_create
+
+    wrapped = wrap(client, tracker=tracker)
+
+    async def run():
+        r = await wrapped.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": "hi"}],
+        )
+        return r
+
+    result = asyncio.run(run())
+    assert result.model == "gpt-4o"
+    assert len(tracker.events) == 1
+    assert tracker.events[0].provider == "openai"
 
 
 def test_wrap_mistral_with_tags():

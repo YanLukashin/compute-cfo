@@ -74,6 +74,21 @@ MODEL_PRICES: dict[str, Tuple[float, float]] = {
     "pixtral-large-latest": (2.00, 6.00),
     "mistral-nemo": (0.02, 0.05),
     "pixtral-12b": (0.15, 0.15),
+
+    # ── Groq ──────────────────────────────────────────────────
+    "llama-3.3-70b-versatile": (0.59, 0.79),
+    "llama-3.1-8b-instant": (0.05, 0.08),
+    "llama-3.1-70b-versatile": (0.59, 0.79),
+    "gemma2-9b-it": (0.20, 0.20),
+    "mixtral-8x7b-32768": (0.24, 0.24),
+
+    # ── Together AI ───────────────────────────────────────────
+    "meta-llama/Llama-3.3-70B-Instruct-Turbo": (0.88, 0.88),
+    "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo": (0.18, 0.18),
+    "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo": (0.88, 0.88),
+    "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo": (3.50, 3.50),
+    "mistralai/Mixtral-8x7B-Instruct-v0.1": (0.60, 0.60),
+    "Qwen/Qwen2.5-72B-Instruct-Turbo": (1.20, 1.20),
 }
 
 # Common aliases mapping

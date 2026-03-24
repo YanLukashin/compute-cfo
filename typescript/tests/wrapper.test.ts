@@ -67,6 +67,49 @@ describe('wrap OpenAI', () => {
     expect(event.tags).toEqual({ project: 'search', agent: 'summarizer' });
   });
 
+  test('streaming tracks cost after iteration', async () => {
+    const tracker = new CostTracker({ quiet: true });
+    const chunks = [
+      { choices: [{ delta: { content: 'Hello' } }], usage: null },
+      { choices: [{ delta: { content: ' World' } }], usage: { prompt_tokens: 50, completion_tokens: 20 } },
+    ];
+    const asyncIterator = {
+      [Symbol.asyncIterator]: async function* () {
+        for (const chunk of chunks) yield chunk;
+      },
+    };
+    const client = {
+      chat: {
+        completions: {
+          create: jest.fn().mockResolvedValue(asyncIterator),
+        },
+      },
+      models: { list: jest.fn() },
+    };
+    const wrapped = wrap(client, { tracker });
+
+    const stream = await wrapped.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'user', content: 'hi' }],
+      stream: true,
+    });
+
+    // No event yet
+    expect(tracker.events.length).toBe(0);
+
+    // Consume stream
+    const results: any[] = [];
+    for await (const chunk of stream) {
+      results.push(chunk);
+    }
+    expect(results.length).toBe(2);
+
+    // Event recorded after stream completes
+    expect(tracker.events.length).toBe(1);
+    expect(tracker.events[0].inputTokens).toBe(50);
+    expect(tracker.events[0].outputTokens).toBe(20);
+  });
+
   test('passthrough attributes', async () => {
     const tracker = new CostTracker({ quiet: true });
     const client = makeOpenAIClient();

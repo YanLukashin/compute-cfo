@@ -42,6 +42,9 @@ export function wrap<T extends object>(client: T, options?: WrapOptions): T {
   throw new TypeError(
     `Unsupported client type. Supported: OpenAI, Anthropic, Google Gemini, Mistral`
   );
+  // Note: Groq and Together AI use OpenAI-compatible APIs, so they match the
+  // first condition (chat.completions.create) and are wrapped as OpenAI clients.
+  // The provider will be detected as "openai" in cost events.
 }
 
 function wrapOpenAI<T extends object>(client: T, tracker: CostTracker): T {
@@ -57,6 +60,36 @@ function wrapOpenAI<T extends object>(client: T, tracker: CostTracker): T {
 
     const start = performance.now();
     const response = await originalCreate(rest);
+
+    // Handle streaming responses
+    if (rest.stream && response && typeof response[Symbol.asyncIterator] === 'function') {
+      const originalIterator = response[Symbol.asyncIterator].bind(response);
+      let usage: any = null;
+      response[Symbol.asyncIterator] = async function* () {
+        for await (const chunk of originalIterator()) {
+          if (chunk?.usage) usage = chunk.usage;
+          yield chunk;
+        }
+        const latencyMs = Math.round((performance.now() - start) * 10) / 10;
+        const inputTokens = usage?.prompt_tokens ?? 0;
+        const outputTokens = usage?.completion_tokens ?? 0;
+        const costUsd = getCost(model, inputTokens, outputTokens);
+        const event: CostEvent = {
+          timestamp: new Date().toISOString(),
+          provider: 'openai',
+          model,
+          operation: 'chat.completions',
+          inputTokens,
+          outputTokens,
+          costUsd,
+          latencyMs,
+          tags,
+        };
+        tracker.record(event);
+      };
+      return response;
+    }
+
     const latencyMs = Math.round((performance.now() - start) * 10) / 10;
 
     const usage = response?.usage;
