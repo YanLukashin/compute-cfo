@@ -33,10 +33,10 @@ all = ["openai>=1.0.0", "anthropic>=0.20.0"]
 dev = ["pytest>=7.0", "pytest-asyncio>=0.21.0"]
 
 [project.urls]
-Homepage = "https://github.com/compute-cfo/compute-cfo"
-Documentation = "https://github.com/compute-cfo/compute-cfo#readme"
-Repository = "https://github.com/compute-cfo/compute-cfo"
-Issues = "https://github.com/compute-cfo/compute-cfo/issues"
+Homepage = "https://github.com/YanLukashin/compute-cfo"
+Documentation = "https://github.com/YanLukashin/compute-cfo#readme"
+Repository = "https://github.com/YanLukashin/compute-cfo"
+Issues = "https://github.com/YanLukashin/compute-cfo/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/compute_cfo"]

@@ -15,7 +15,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/compute-cfo/compute-cfo"
+    "url": "https://github.com/YanLukashin/compute-cfo"
   },
   "peerDependencies": {
     "openai": ">=4.0.0",
